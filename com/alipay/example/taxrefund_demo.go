@@ -24,6 +24,8 @@ func main() {
 	evaluateOriginalCredit(client)
 	//createOriginalCredit(client)
 	//inquireOriginalCredit(client)
+	//confirmOriginalCredit(client)
+	//syncTaxRefundForm(client)
 }
 
 func evaluateOriginalCredit(client *defaultAlipayClient.DefaultAlipayClient) {
@@ -76,6 +78,68 @@ func evaluateOriginalCredit(client *defaultAlipayClient.DefaultAlipayClient) {
 		if response.Passport != nil {
 			fmt.Println("passport holder:", response.Passport.FullName)
 		}
+	case "F":
+		fmt.Println("Failed:", response.Result.ResultCode, response.Result.ResultMessage)
+	case "U":
+		fmt.Println("Unknown, consider retry:", response.Result.ResultCode, response.Result.ResultMessage)
+	}
+}
+
+func confirmOriginalCredit(client *defaultAlipayClient.DefaultAlipayClient) {
+	alipayRequest, req := taxrefund.NewAlipayConfirmOriginalCreditRequest()
+
+	req.OriginalCreditRequestId = "gb_tax_1089760038715669_102775745070000"
+
+	execute, err := client.Execute(alipayRequest)
+	if err != nil {
+		fmt.Println("SDK error:", err.Error())
+		return
+	}
+
+	response := execute.(*responseTaxRefund.AlipayConfirmOriginalCreditResponse)
+
+	switch response.Result.ResultStatus {
+	case "S":
+		fmt.Println("Success")
+		fmt.Println("acquirerId:", response.AcquirerId)
+		fmt.Println("pspId:", response.PspId)
+	case "F":
+		fmt.Println("Failed:", response.Result.ResultCode, response.Result.ResultMessage)
+	case "U":
+		fmt.Println("Unknown, consider retry:", response.Result.ResultCode, response.Result.ResultMessage)
+	}
+}
+
+func syncTaxRefundForm(client *defaultAlipayClient.DefaultAlipayClient) {
+	alipayRequest, req := taxrefund.NewAlipaySyncTaxRefundFormRequest()
+
+	req.TaxRefundFormNumber = "11048200018287537880"
+	req.FormStatus = model.TaxRefundFormStatusType_STAMPED
+	req.StatusChangeTime = "2024-01-15T10:30:00+08:00"
+	req.FormPrintDate = "2024-01-10T08:00:00+08:00"
+	req.FormExpireDate = "2024-07-10T08:00:00+08:00"
+	req.TaxRefundAmount = model.NewAmount("100", "USD")
+	req.UserId = "210220900000021958205"
+	req.Merchants = []*model.Merchant{
+		{
+			ReferenceMerchantId: "2188245U41144145",
+			MerchantName:        "Merchant Name",
+			MerchantMCC:         "5411",
+		},
+	}
+	req.Memo = "Tax refund form synchronized"
+
+	execute, err := client.Execute(alipayRequest)
+	if err != nil {
+		fmt.Println("SDK error:", err.Error())
+		return
+	}
+
+	response := execute.(*responseTaxRefund.AlipaySyncTaxRefundFormResponse)
+
+	switch response.Result.ResultStatus {
+	case "S":
+		fmt.Println("Success")
 	case "F":
 		fmt.Println("Failed:", response.Result.ResultCode, response.Result.ResultMessage)
 	case "U":

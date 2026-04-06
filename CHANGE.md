@@ -13,6 +13,7 @@
 | `com/alipay/api/model/Passport.go` | 护照信息模型，包含 `fullName`、`passportNumber`、`nationality`、`valideDate`、`expireDate`、`birthday` |
 | `com/alipay/api/model/TaxRefundUser.go` | 退税用户模型，包含 `userId`、`userLoginId`、`userName` |
 | `com/alipay/api/model/TaxRefundQuote.go` | 退税汇率模型，与通用 `Quote` 的区别在于 `quotePrice` 为 `string` 类型（API 返回字符串格式） |
+| `com/alipay/api/model/TaxRefundFormStatusType.go` | 退税表单状态枚举，包含 `INIT`、`STAMPED`、`REJECTED_BY_CUSTOMS`、`RECEIVED`、`VOIDED`、`FAILED`、`EXPIRED`、`REFUNDED`、`REFUNDED_NON_ALIPAYPLUS` |
 
 #### Request
 
@@ -21,6 +22,8 @@
 | `com/alipay/api/request/taxrefund/AlipayEvaluateOriginalCreditRequest.go` | 评估 OCT 是否可用 | `POST /aps/api/v1/funds/evaluateOriginalCredit` |
 | `com/alipay/api/request/taxrefund/AlipayCreateOriginalCreditRequest.go` | 创建 OCT（发起退税） | `POST /aps/api/v1/funds/createOriginalCredit` |
 | `com/alipay/api/request/taxrefund/AlipayInquireOriginalCreditRequest.go` | 查询 OCT 结果 | `POST /aps/api/v1/funds/inquireOriginalCredit` |
+| `com/alipay/api/request/taxrefund/AlipayConfirmOriginalCreditRequest.go` | 确认 OCT 结果 | `POST /aps/api/v1/funds/confirmOriginalCredit` |
+| `com/alipay/api/request/taxrefund/AlipaySyncTaxRefundFormRequest.go` | 同步退税表单状态 | `POST /aps/api/v1/funds/syncTaxRefundForm` |
 
 #### Response
 
@@ -29,6 +32,8 @@
 | `com/alipay/api/response/taxrefund/AlipayEvaluateOriginalCreditResponse.go` | 包含 `acquirerId`、`pspId`、`payeeAmount`、`payeeQuote`、`payee`、`passport`、`walletBrandName` |
 | `com/alipay/api/response/taxrefund/AlipayCreateOriginalCreditResponse.go` | 包含 `originalCreditId`、`originalCreditTime`、`payeeAmount`、`payeeQuote`、`payee` |
 | `com/alipay/api/response/taxrefund/AlipayInquireOriginalCreditResponse.go` | 包含 `originalCreditResult`（OCT 本身结果）、`payerAmount`、`payeeAmount`、`payer`、`payee` 等完整字段 |
+| `com/alipay/api/response/taxrefund/AlipayConfirmOriginalCreditResponse.go` | 包含 `result`、`acquirerId`、`pspId` |
+| `com/alipay/api/response/taxrefund/AlipaySyncTaxRefundFormResponse.go` | 包含 `result` |
 
 #### Notify
 
@@ -40,7 +45,7 @@
 
 | 文件 | 说明 |
 |------|------|
-| `com/alipay/example/taxrefund_demo.go` | 三个接口的完整使用示例：`evaluateOriginalCredit`、`createOriginalCredit`、`inquireOriginalCredit` |
+| `com/alipay/example/taxrefund_demo.go` | 五个接口的完整使用示例：`evaluateOriginalCredit`、`createOriginalCredit`、`inquireOriginalCredit`、`confirmOriginalCredit`、`syncTaxRefundForm` |
 
 ---
 
@@ -75,6 +80,22 @@ Alipay+ 在 OCT 达到终态后，主动推送到 `createOriginalCredit` 请求�
 4. 返回 `{"result": {"resultStatus": "S", "resultCode": "SUCCESS", "resultMessage": "Success"}}`
 
 未返回成功时，Alipay+ 将按 2min / 10min / 10min / 1h / 2h / 6h / 15h 间隔最多重试 7 次。
+
+#### confirmOriginalCredit
+
+当 `inquireOriginalCredit` 查询 1 分钟后 OCT 状态仍未知时，调用此接口向 Alipay+ 确认 OCT 是否成功。
+
+必填字段：`originalCreditRequestId` 与 `originalCreditId` 二选一
+
+响应中 `result.resultStatus=S` 表示确认成功（OCT 成功），`result.resultStatus=F` 表示确认失败（OCT 失败），需要根据 `result.resultCode` 区分处理。
+
+#### syncTaxRefundForm
+
+同步退税表单状态给 Alipay+。
+
+必填字段：`taxRefundFormNumber`、`formStatus`、`taxRefundAmount`、`merchants`、`userId`
+
+`formStatus` 可选值：`INIT`、`STAMPED`、`REJECTED_BY_CUSTOMS`、`RECEIVED`、`VOIDED`、`FAILED`、`EXPIRED`、`REFUNDED`、`REFUNDED_NON_ALIPAYPLUS`
 
 ---
 
